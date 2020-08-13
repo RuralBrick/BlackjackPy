@@ -64,7 +64,7 @@ def split():
     global playerHand2
     global didSplit
 
-    if len(playerHand) == 2 and playerHand[0] == playerHand[1]:
+    if not didSplit and len(playerHand) == 2 and playerHand[0] == playerHand[1]:
         didSplit = True
         playerHand2 += playerHand.pop()
         
@@ -96,9 +96,11 @@ init()
 while True:
     print("Dealer: #, {}".format(dealerHand[1]))
     
-    print("Player: {}".format(", ".join(playerHand)))
-    if didSplit: print("        {}".format(", ".join(playerHand2)))
-    
+    if didSplit:
+        print("Hand {}: {}".format(currentHand, ", ".join(playerHand if currentHand == 1 else playerHand2)))
+    else:
+        print("Player: {}".format(", ".join(playerHand)))
+
     print("Actions: (s)tand, (h)it, (d)ouble down, s(p)lit, s(u)rrender")
     action = input().lower()
 
