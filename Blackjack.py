@@ -1,6 +1,7 @@
+import math
 import random
 
-wallet = 10
+wallet = 100
 bets = []
 values = {
     '2': 2,
@@ -29,15 +30,18 @@ def init():
     global didSplit
     global currentHand
 
-    dealerHand.clear()
+    dealerHand = []
     playerHands = [[], []]
     didSplit = False
     currentHand = 0
 
-    playerHands[0] += random.choice(cards)
-    dealerHand += random.choice(cards)
-    playerHands[0] += random.choice(cards)
-    dealerHand += random.choice(cards)
+    playerHands[0].append(random.choice(cards))
+    dealerHand.append(random.choice(cards))
+    playerHands[0].append(random.choice(cards))
+    dealerHand.append(random.choice(cards))
+
+    if len(dealerHand) != 2 or len(playerHands[0]) != 2:
+        init()
 
 def fullInit():
     global wallet
@@ -76,141 +80,181 @@ def calcHand(hand):
 def calcCurrent():
     return calcHand(playerHands[currentHand])
 
-def justEnd():
-    global wallet
-    global bets
-    global dealerHand
-    global playerHands
-    global didSplit
-
-    netGain = 0
-    
-    print("Dealer: {}".format(", ".join(dealerHand)))
-    if didSplit:
-        print("Hand 1: {}".format(", ".join(playerHands[0])))
-        print("Bet: {}".format(bets[0])
-        print("Hand 2: {}".format(", ".join(playerHands[1])))
-        print("Bet: {}".format(bets[1])
-    else:
-        print("Player: {}".format(", ".join(playerHands[0])))
-        print("Bet: {}".format(bets[0]))
-        netGain -= bets[0]
-    
-    #if netGain 
-
-def calcEnd():
-    global wallet
-    global bets
-    global dealerHand
-    global playerHands
-    global didSplit
-    global currentHand
-    
-    while calcHand(dealerHand) < 17:
-        dealerHand += random.choice(cards)
-
-    dealerVal = calcHand(dealerHand)
-    netGain = 0
-
-    print("Dealer: {}".format(", ".join(dealerHand)))
-    if didSplit:
-        print("Hand 1: {}".format(", ".join(playerHands[0])))
-        print("Bet: {}".format(bets[0])
-        print("Hand 2: {}".format(", ".join(playerHands[1])))
-        print("Bet: {}".format(bets[1])
-    else:
-        print("Player: {}".format(", ".join(playerHands[0])))
-        print("Bet: {}".format(bets[0]))
-    
-    if dealerVal > 21 or dealerVal < calcCurrent():
-        print("You won {}!\n".format(netGain))
-        wallet += netGain
-    elif dealerVal > calcCurrent():
-        print("You lost {}...\n".format(netGain))
-        wallet -= netGain
-
-def checkHand():
-    pass
-    
 def checkBust():
     if calcCurrent() > 21:
         print("Your hand busted\n")
         return True
     else:
         return False
-      
+
+def playDealer():
+    global bets
+    global dealerHand
+    global playerHands
+    global didSplit
+    
+    while calcHand(dealerHand) < 17:
+        dealerHand.append(random.choice(cards))
+    dealerVal = calcHand(dealerHand)
+    playerVal = calcHand(playerHands[0])
+    
+    net = 0
+
+    if dealerVal == 21:
+        if playerVal != 21:
+            net -= bets[0]
+        if didSplit and calcHand(playerHands[1]) != 21:
+            net -= bets[1]
+    elif dealerVal > 21:
+        if playerVal == 21:
+            net += math.ceil(1.5 * bets[0])
+        elif playerVal < 21:
+            net += bets[0]
+        else:
+            net -= bets[0]
+        
+        if didSplit:
+            playerVal2 = calcHand(playerHands[1])
+            if playerVal2 == 21:
+                net += math.ceil(1.5 * bets[1])
+            elif playerVal2 < 21:
+                net += bets[1]
+            else:
+                net -= bets[1]
+    else:
+        if playerVal == 21:
+            net += math.ceil(1.5 * bets[0])
+        elif playerVal > 21 or playerVal < dealerVal:
+            net -= bets[0]
+        elif playerVal > dealerVal:
+            net += bets[0]
+        
+        if didSplit:
+            playerVal2 = calcHand(playerHands[1])
+            if playerVal2 == 21:
+                net += math.ceil(1.5 * bets[1])
+            elif playerVal2 > 21 or playerVal2 < dealerVal:
+                net -= bets[1]
+            elif playerVal2 > dealerVal:
+                net += bets[1]
+
+    endRound(net)
+
+def loseHand():
+    global bets
+    global dealerHand
+    global playerHands
+    global didSplit
+    
+    net = 0
+    
+    if didSplit:
+        if calcHand(playerHands[0]) > 21:
+            net -= bets[0]
+            net -= bets[1]
+            endRound(net)
+        else:
+            playDealer()
+    else:
+        net -= bets[0]
+        endRound(net)
+
 def endRound(net):
+    global wallet
+    global bets
+    global dealerHand
+    global playerHands
+    global didSplit
+    
     print("Dealer: {}".format(", ".join(dealerHand)))
     if didSplit:
         print("Hand 1: {}".format(", ".join(playerHands[0])))
-        print("Bet: {}".format(bets[0])
+        print("Bet: {}".format(bets[0]))
         print("Hand 2: {}".format(", ".join(playerHands[1])))
-        print("Bet: {}".format(bets[1])
+        print("Bet: {}".format(bets[1]))
     else:
         print("Player: {}".format(", ".join(playerHands[0])))
         print("Bet: {}".format(bets[0]))
 
+    wallet += net
+    
     if net == 0:
         print("No change")
     elif net > 0:
         print("You won {}!".format(net))
     else:
-        print("You lost {}...".format(net))
+        print("You lost {}...".format(-net))
+
+    if input("Play again?(y): ").lower() == 'y':
+        fullInit()
+    else:
+        sys.exit()
 
 def stand():
+    global didSplit
+    global currentHand
+    
     if didSplit and currentHand == 0:
         currentHand = 1
     else:
-        pass # end round
+        playDealer()
 
 def hit():
     global playerHands
-    playerHands[currentHand] += random.choice(cards)
+    global didSplit
+    global currentHand
+    
+    playerHands[currentHand].append(random.choice(cards))
     if checkBust():
         if didSplit and currentHand == 0:
             currentHand = 1
         else:
-            pass #lose hand
+            loseHand()
 
 def double():
-    global bet
+    global bets
     global playerHands
-    bet *= 2
-    playerHands[currentHand] += random.choice(cards)
+    global didSplit
+    global currentHand
+    
+    bets[currentHand] *= 2
+    playerHands[currentHand].append(random.choice(cards))
     if checkBust():
         if didSplit and currentHand == 0:
             currentHand = 1
         else:
-            pass #lose hand
+            loseHand()
     else:
-        pass #end round
+        playDealer()
 
 def split():
+    global bets
     global playerHands
     global didSplit
 
     if not didSplit and len(playerHands[0]) == 2 and playerHands[0][0] == playerHands[0][1]:
         didSplit = True
-        playerHands[1] += playerHands[0].pop()
+        bets.append(bets[0])
         
-        playerHands[0] += random.choice(cards)
-        playerHands[1] += random.choice(cards)
+        playerHands[1] += playerHands[0].pop()
+        playerHands[0].append(random.choice(cards))
+        playerHands[1].append(random.choice(cards))
     else:
         print("Split unavailable\n")
 
 def surrender():
-    global bet
+    global bets
     global playerHands
     global didSplit
 
     if not didSplit and len(playerHands[0]) == 2:
-        bet //= 2
-        # lose hand
+        bets[0] //= 2
+        loseHand()
     else:
         print("Surrender unavailable\n")
 
 def showValue():
-    print("Current value: {}\n".format(calcCurrent))
+    print("Current value: {}\n".format(calcCurrent()))
 
 def swapHand():
     global currentHand
@@ -239,7 +283,7 @@ actionDict = {
 def main():
     fullInit()
     while True:
-        print("Bet: {}".format(bet))
+        print("Bet: {}".format(bets[currentHand]))
         print("Dealer: #, {}".format(dealerHand[1]))
         
         if didSplit:
