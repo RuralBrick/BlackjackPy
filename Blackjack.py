@@ -1,3 +1,4 @@
+import sys
 import math
 import random
 
@@ -185,7 +186,7 @@ def endRound(net):
     else:
         print("You lost {}...".format(-net))
 
-    if input("Play again?(y): ").lower() == 'y':
+    if input("Play again? (y): ").lower() == 'y':
         fullInit()
     else:
         sys.exit()
